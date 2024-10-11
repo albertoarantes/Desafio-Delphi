@@ -1,0 +1,48 @@
+unit FConsultaCEP;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, JvExStdCtrls, JvMemo,
+  Vcl.Buttons, JvExButtons, JvBitBtn, JvExControls, JvLabel, JvEdit, Vcl.Mask,
+  JvExMask, JvToolEdit, JvMaskEdit, Vcl.ExtCtrls, Validacoes;
+
+type
+  TApiCep = record
+     Nome : string;
+     BaseUrl : string;
+     Complemento : string;
+  end;
+
+  TArrayAPI = array of TApiCep;
+
+  TfrmConsultaCep = class(TForm)
+    pnl1: TPanel;
+    lbl1: TLabel;
+    edtCCEP_CLI: TJvMaskEdit;
+    edtENDE_CLI: TJvEdit;
+    lblENDE_CLI: TJvLabel;
+    JvLabel1: TJvLabel;
+    JvEdit1: TJvEdit;
+    JvLabel2: TJvLabel;
+    JvEdit2: TJvEdit;
+    JvLabel3: TJvLabel;
+    JvEdit3: TJvEdit;
+    btnConsulta: TJvBitBtn;
+    mmoResultado: TJvMemo;
+  private
+     FApiCep : TArrayAPI;
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  frmConsultaCep : TfrmConsultaCep;
+implementation
+
+{$R *.dfm}
+
+end.
+

@@ -1,0 +1,225 @@
+unit Validacoes;
+
+interface
+
+uses Datasnap.DBClient, Data.SqlExpr, Vcl.StdCtrls, System.DateUtils, System.SysUtils,
+     IdHTTP,System.Net.URLClient,System.Net.HttpClient, System.Net.HttpClientComponent,IdSSLOpenSSL,
+     System.JSON, Vcl.Forms,Winapi.Windows;
+
+   /// <summary> Trata mensagem para erro/aviso/informação </summary>
+   /// <param name="pMens"> Mensagem a ser tratada </param>
+   /// <param name="pTipo">Identificador da mensagem </param>
+   /// <param name="pbtnDefault"> Botão padrão </param>
+   /// <returns>Trata mensagem para erro/aviso/informação</returns>
+   function Mensagem(pMens, pTitulo: string; pTipo: Byte; pbtnDefault: Integer = MB_DEFBUTTON1): Byte;
+
+   /// <summary> Função para mensagem de confirmação </summary>
+   /// <param name="pMens"> Mensagem de confirmação </param>
+   /// <param name="pbtnDefault"> Botão padrão </param>
+   /// <returns>Retorna verdadeiro ou falso de acordo com a seleção do operador</returns>
+   function Confirma(pMens: string; pbtnDefault: Integer = MB_DEFBUTTON1): Boolean;
+
+   /// <summary> Função para mensagem de aviso </summary>
+   /// <param name="pMens"> Mensagem a ser apresentada </param>
+   /// <remarks>Retorna a mensagem já tratada com icone de aviso</remarks>
+   procedure Aviso(pMens: string);
+
+   /// <summary> Preenche os campos de log da pesagem </summary>
+   /// <param name="pUsuario"> Usuário do sistema </param>
+   /// <param name="pHostname">Nome do computador </param>
+   /// <param name="pIP"> IP da estação </param>
+   /// <param name="pUsuarioWin"> Usuário do windows </param>
+   /// <param name="pDataHora"> Hora que foi realizado o cadastro </param>
+   /// <remarks> Preenche os campos do dataset conforme variaveis do sistema</returns>
+   procedure Erro(pMens: string);
+
+   /// <summary> Preenche os campos de log da pesagem </summary>
+   /// <param name="pUsuario"> Usuário do sistema </param>
+   /// <param name="pHostname">Nome do computador </param>
+   /// <param name="pIP"> IP da estação </param>
+   /// <param name="pUsuarioWin"> Usuário do windows </param>
+   /// <param name="pDataHora"> Hora que foi realizado o cadastro </param>
+   /// <remarks> Preenche os campos do dataset conforme variaveis do sistema</returns>
+   procedure Informacao(pMens: string);
+
+   /// <summary> Preenche os campos de log da pesagem </summary>
+   /// <param name="pUsuario"> Usuário do sistema </param>
+   /// <param name="pHostname">Nome do computador </param>
+   /// <param name="pIP"> IP da estação </param>
+   /// <param name="pUsuarioWin"> Usuário do windows </param>
+   /// <param name="pDataHora"> Hora que foi realizado o cadastro </param>
+   /// <remarks> Preenche os campos do dataset conforme variaveis do sistema</returns>
+   function IndexText(const pText: string; const pValues: array of string): Integer;
+
+   /// <summary> Preenche os campos de log da pesagem </summary>
+   /// <param name="pUsuario"> Usuário do sistema </param>
+   /// <param name="pHostname">Nome do computador </param>
+   /// <param name="pIP"> IP da estação </param>
+   /// <param name="pUsuarioWin"> Usuário do windows </param>
+   /// <param name="pDataHora"> Hora que foi realizado o cadastro </param>
+   /// <remarks> Preenche os campos do dataset conforme variaveis do sistema</returns>
+   function ValidaApi(pApi, pCEP, pComplemento, pNomeAPI : string) : Boolean;
+implementation
+
+
+function Mensagem(pMens, pTitulo: string; pTipo: Byte; pbtnDefault: Integer = MB_DEFBUTTON1): Byte;
+begin
+   case pTipo of
+      1: Result := Application.MessageBox(Pchar(pMens), PChar(pTitulo), MB_YESNO + MB_ICONQUESTION + pbtnDefault);
+      2: Result := Application.MessageBox(Pchar(pMens), PChar(pTitulo), MB_OK + MB_ICONWARNING + pbtnDefault );
+      3: Result := Application.MessageBox(Pchar(pMens), PChar(pTitulo), MB_OK + MB_ICONERROR + pbtnDefault );
+      4: Result := Application.MessageBox(Pchar(pMens), PChar(pTitulo), MB_OK + MB_ICONINFORMATION + pbtnDefault );
+   else
+      Result := 0;
+   end;
+end;
+
+function Confirma(pMens: string; pbtnDefault: Integer = MB_DEFBUTTON1): Boolean;
+begin
+   Result := (Mensagem(pMens, 'CONFIRMA', 1, pbtnDefault) = idYes);
+end;
+
+procedure Aviso(pMens: string);
+begin
+   Mensagem(pMens, 'AVISO', 2);
+end;
+
+procedure Erro(pMens: string);
+begin
+   Mensagem(pMens, 'ERRO', 3);
+end;
+
+procedure Informacao(pMens: string);
+begin
+   Mensagem(pMens, 'INFORMAÇÃO', 4);
+end;
+
+function IndexText(const pText: string; const pValues: array of string): Integer;
+var
+   lCont : Integer;
+begin
+   Result := -1;
+   for lCont := Low(pValues) to High(pValues) do
+   begin
+      if SameText(pText, pValues[lCont]) then
+      begin
+         Result := lCont;
+         Exit;
+      end;
+   end;
+end;
+
+function ValidaApi(pApi, pCEP, pComplemento, pNomeAPI : string) : Boolean;
+var
+   lHttp : TIdHTTP;
+   lResposta, lEnderecoMontado,
+   lBairro, lCidade, lRua : string;
+   HTTPClient: TNetHTTPClient;
+   Response: IHTTPResponse;
+   lSSli : TIdSSLIOHandlerSocketOpenSSL;
+   lJSONValor : TJSONValue;
+   lJSONResposta : TJSONObject;
+   lCont : Integer;
+begin
+   Result := False;
+   lEnderecoMontado := '';
+   lHttp := TIdHTTP.Create(nil);
+   lSSli := TIdSSLIOHandlerSocketOpenSSL.Create(nil);
+
+   lSSli.SSLOptions.Method := sslvTLSv1_2;
+
+   lHttp.IOHandler := lSSli;
+
+   try
+      try
+         lResposta := lHttp.Get(pApi);
+         Result := True;
+      except
+         on E: EIdHTTPProtocolException do
+         begin
+            Aviso('Erro de protocolo -> ' + e.ErrorMessage);
+         end;
+         on E: Exception do
+         begin
+            Aviso(Format('Erro com a API (%s) possivelmente fora do ar ou endereço incorreto. Verifique! ' + sLineBreak + 'Erro -> %s', [pNomeAPI,E.Message]));
+         end;
+      end;
+
+
+      if Result then
+      begin
+         HTTPClient := TNetHTTPClient.Create(nil);
+         try
+            case IndexText(pNomeAPI, ['ViaCep', 'OpenCep', 'AwesomeAPI']) of
+               0:
+               begin
+                  lEnderecoMontado := pApi + '/ws/' + pCEP + pComplemento;
+                  lBairro := 'bairro';
+                  lCidade := 'localidade';
+                  lRua := 'logradouro';
+               end;
+               1:
+               begin
+                  lEnderecoMontado := pApi + pComplemento + pCEP;
+                  lBairro := 'bairro';
+                  lCidade := 'localidade';
+                  lRua := 'logradouro';
+               end;
+               2:
+               begin
+                  lEnderecoMontado := pApi + pComplemento + pCEP;
+                  lBairro := 'district';
+                  lCidade := 'city';
+                  lRua := 'address';
+               end;
+
+            end;
+            try
+               Response := HTTPClient.Get(lEnderecoMontado);
+               lResposta := Response.ContentAsString(TEncoding.UTF8);
+               if Response.StatusCode = 200 then
+               begin
+                  lJSONValor := TJSONObject.ParseJSONValue(lResposta);
+
+                  if lJSONValor is TJSONObject then
+                  begin
+                     lJSONResposta := lJSONValor as TJSONObject;
+                     CampoByName('BAIR_CLI').AsString := lJSONResposta.GetValue<string>(lBairro);
+                     CampoByName('CIDA_CLI').AsString := lJSONResposta.GetValue<string>(lCidade);
+                     CampoByName('ENDE_CLI').AsString := lJSONResposta.GetValue<string>(lRua);
+                  end;
+               end
+               else
+               begin
+                  Erro(Format('Erro ao processar API (%s). Verifique! '+ sLineBreak +
+                              'Código: %s' + sLineBreak +
+                              'Descrição: %s',
+                              [pNomeApi, IntToStr(Response.StatusCode), Response.StatusText]));
+               end;
+            except
+               on E: ENetHTTPClientException do
+               begin
+                 Aviso('Erro de conexão: ' + E.Message);
+               end;
+               on E: Exception do
+               begin
+                  Aviso('Erro ao processar resposta da API: ' + E.Message);
+               end;
+
+            end;
+         finally
+            HTTPClient.Free;
+         end;
+      end;
+
+
+
+   finally
+      FreeAndNil(lHttp);
+   end;
+end;
+
+
+
+end.
+

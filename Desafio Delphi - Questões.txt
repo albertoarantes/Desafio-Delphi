@@ -1,0 +1,80 @@
+Questão 1
+O que você entende por arquitetura MVC?
+
+Um padrão de projeto que pode ser a base para a programação orientada a objeto. Onde se tem 3 camadas, elas sendo Model, view e controller. Trazendo para o exemplo de um cadastro de cliente onde tenho o model que é o datamodule onde fica os componentes responsáveis para fazer a ponte com o banco de dados e todas as validações e regras de negócio, a view que é o formulário onde terá todos os dados do cliente e onde o usuário fará a iteração e o controller é a ponte da view com o model onde o controller pega as informações da view valida e passa para o model e também retorna para a camada view.
+
+Questão 2
+Escolha um padrão de projeto e escreva seu conceito, objetivo e um cenário de uso.
+
+Singleton
+
+É um padrão de projeto para garantir a criação de uma classe com única instancia, permitindo um melhor controle e compartilhamento do recurso até o fim da aplicação. O objetivo é a facilidade de partilhar esse recurso dentro da aplicação e garantindo apenas uma única instancia. Um cenário de uso é a transação do banco de dados, com o sigleton podemos garantir que o cadastro do cliente 1 não poderá ter 2 iterações ao mesmo tempo, garantindo a gravação correta dos dados;
+
+unit TransacaoGeral;
+
+interface
+
+uses
+   SysUtils, SyncObjs;
+
+type
+   TTransacaoGeral = class
+   private
+      constructor Create;
+   public
+      class function GetInstance: TTransacaoGeral;
+      procedure IniciaTransacao;
+      procedure CommitaTransacao;
+      procedure ReverterTransacao;
+   end;
+
+implementation
+
+var
+   FInstancia: TTransacaoGeral = nil;
+   TravaSessao: TCriticalSection;
+
+{ TTransacaoGeral }
+
+constructor TTransacaoGeral.Create;
+begin
+   inherited Create;
+end;
+
+class function TTransacaoGeral.GetInstance: TTransacaoGeral;
+begin
+   TravaSessao.Enter;
+   try
+      if FInstancia = nil then
+      begin
+         FInstancia := TTransacaoGeral.Create;
+      end;
+   finally
+      TravaSessao.Leave;
+   end;
+   Result := FInstancia;
+end;
+
+procedure TTransacaoGeral.IniciaTransacao;
+begin
+   // Inicia a transação (Apenas para apresentar o modelo sigleton)
+end;
+
+procedure TTransacaoGeral.CommitaTransacao;
+begin
+   // Confirma a transação (Apenas para apresentar o modelo sigleton)
+end;
+
+procedure TTransacaoGeral.ReverterTransacao;
+begin
+   // Reverte a transação (Apenas para apresentar o modelo sigleton)
+end;
+
+initialization
+   TravaSessao := TCriticalSection.Create;
+
+finalization
+   FreeAndNil(FInstancia);
+   TravaSessao.Free; 
+
+end.

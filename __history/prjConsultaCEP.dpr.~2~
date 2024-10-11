@@ -1,0 +1,16 @@
+program prjConsultaCEP;
+
+uses
+  Vcl.Forms,
+  FConsultaCEP in 'FConsultaCEP.pas' {Form1},
+  Validacoes in 'Validacoes.pas';
+
+{$R *.res}
+
+begin
+  Application.Initialize;
+  Application.MainFormOnTaskbar := True;
+  Application.CreateForm(TForm1, Form1);
+  Application.Run;
+end.
+
